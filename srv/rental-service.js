@@ -1,5 +1,8 @@
 const cds = require('@sap/cds');
 
+// Email validation regex supporting international domains, subdomains, plus signs, dots, and other valid patterns
+const EMAIL_VALIDATION_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
 module.exports = cds.service.impl(async function() {
   
   // Handler for generateAgreement action
@@ -201,29 +204,23 @@ function calculateDurationInternal(startDate, endDate) {
   let tempDate = new Date(start);
   
   // Calculate years
-  while (true) {
-    const nextYear = new Date(tempDate);
+  let nextYear = new Date(tempDate);
+  nextYear.setFullYear(nextYear.getFullYear() + 1);
+  while (nextYear <= end) {
+    years++;
+    tempDate = nextYear;
+    nextYear = new Date(tempDate);
     nextYear.setFullYear(nextYear.getFullYear() + 1);
-    
-    if (nextYear <= end) {
-      years++;
-      tempDate = nextYear;
-    } else {
-      break;
-    }
   }
   
   // Calculate months
-  while (true) {
-    const nextMonth = new Date(tempDate);
+  let nextMonth = new Date(tempDate);
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
+  while (nextMonth <= end) {
+    months++;
+    tempDate = nextMonth;
+    nextMonth = new Date(tempDate);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
-    if (nextMonth <= end) {
-      months++;
-      tempDate = nextMonth;
-    } else {
-      break;
-    }
   }
   
   // Calculate remaining days
@@ -330,8 +327,5 @@ function formatAddress(address) {
 
 // Helper function to validate email
 function isValidEmail(email) {
-  // More comprehensive email validation regex that supports international domains,
-  // subdomains, plus signs, dots, and other common valid email patterns
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-  return emailRegex.test(email);
+  return EMAIL_VALIDATION_REGEX.test(email);
 }
