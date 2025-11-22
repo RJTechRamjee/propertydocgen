@@ -75,9 +75,9 @@ entity AdditionalService {
 entity RentalAgreement {
   key agreementID: UUID;
   agreementNumber: String(50);
-  landlord: Landlord;
-  tenant: Tenant;
-  property: Property;
+  landlord: Association to Landlord;
+  tenant: Association to Tenant;
+  property: Association to Property;
   startDate: Date not null;
   endDate: Date not null;
   rentAmount: Decimal(10,2) not null;
@@ -97,8 +97,8 @@ entity RentalAgreement {
   generatedDocument: LargeBinary;
 }
 
-enity AgreementService {
+entity AgreementService {
   key ID: UUID;
   agreement: Association to RentalAgreement;
-  service: AdditionalService;
+  service: Association to AdditionalService;
 }
