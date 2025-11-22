@@ -15,7 +15,17 @@ The service will be available at `http://localhost:4004/odata/v4/rental`
 
 ### 1. Generate Agreement (Action)
 
-Creates a complete rental agreement with validation.
+Creates a complete rental agreement with validation and generates a PDF document.
+
+**HTTP Method:** POST  
+**URL:** `/odata/v4/rental/generateAgreement`
+
+**Features:**
+- Validates all input data
+- Generates unique agreement number
+- Creates a professional PDF document
+- Returns agreement summary with costs and duration
+- PDF includes: landlord info, tenant info, property details, financial terms, signatures section
 
 **HTTP Method:** POST  
 **URL:** `/odata/v4/rental/generateAgreement`
@@ -118,6 +128,7 @@ curl -X POST "http://localhost:4004/odata/v4/rental/generateAgreement" \
   "message": "Rental agreement generated successfully",
   "errors": [],
   "validationWarnings": [],
+  "pdfDocument": "JVBERi0xLjMKJf____8K...(base64 encoded PDF)",
   "agreementSummary": {
     "landlordName": "John Doe",
     "tenantName": "Jane Smith",
@@ -130,6 +141,28 @@ curl -X POST "http://localhost:4004/odata/v4/rental/generateAgreement" \
     "totalYearlyCost": 156000
   }
 }
+```
+
+**Saving the PDF:**
+```javascript
+// Using Node.js
+const response = await fetch('http://localhost:4004/odata/v4/rental/generateAgreement', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(agreementData)
+});
+const data = await response.json();
+const pdfBuffer = Buffer.from(data.pdfDocument, 'base64');
+fs.writeFileSync('rental-agreement.pdf', pdfBuffer);
+```
+
+```bash
+# Using curl and jq
+curl -X POST "http://localhost:4004/odata/v4/rental/generateAgreement" \
+  -H "Content-Type: application/json" \
+  -d @agreement-data.json | \
+  jq -r '.pdfDocument' | \
+  base64 -d > rental-agreement.pdf
 ```
 
 ### 2. Validate Agreement Data (Action)

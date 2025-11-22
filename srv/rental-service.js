@@ -1,4 +1,5 @@
 const cds = require('@sap/cds');
+const PDFDocument = require('pdfkit');
 
 // Email validation regex supporting international domains, subdomains, plus signs, dots, and other valid patterns
 const EMAIL_VALIDATION_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -20,6 +21,7 @@ module.exports = cds.service.impl(async function() {
           message: 'Validation failed',
           errors: validationResult.errors,
           validationWarnings: validationResult.warnings,
+          pdfDocument: null,
           agreementSummary: null
         };
       }
@@ -50,12 +52,26 @@ module.exports = cds.service.impl(async function() {
         totalYearlyCost: costs.yearlyTotal
       };
       
+      // Generate PDF document
+      const pdfBuffer = await generatePDF(
+        agreementNumber,
+        landlord,
+        tenant,
+        property,
+        agreementDetails,
+        additionalServices,
+        familyMembers,
+        duration,
+        costs
+      );
+      
       return {
         success: true,
         agreementNumber: agreementNumber,
         message: 'Rental agreement generated successfully',
         errors: [],
         validationWarnings: validationResult.warnings,
+        pdfDocument: pdfBuffer,
         agreementSummary: agreementSummary
       };
       
@@ -66,6 +82,7 @@ module.exports = cds.service.impl(async function() {
         message: `Error generating agreement: ${error.message}`,
         errors: [error.message],
         validationWarnings: [],
+        pdfDocument: null,
         agreementSummary: null
       };
     }
@@ -328,4 +345,233 @@ function formatAddress(address) {
 // Helper function to validate email
 function isValidEmail(email) {
   return EMAIL_VALIDATION_REGEX.test(email);
+}
+
+// Helper function to generate PDF document
+async function generatePDF(agreementNumber, landlord, tenant, property, agreementDetails, additionalServices, familyMembers, duration, costs) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks = [];
+      
+      // Collect PDF data
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(pdfBuffer);
+      });
+      doc.on('error', reject);
+      
+      // Set document metadata
+      doc.info.Title = `Rental Agreement - ${agreementNumber}`;
+      doc.info.Author = 'Property Doc Generator';
+      
+      // Title
+      doc.fontSize(20).font('Helvetica-Bold').text('RENTAL AGREEMENT', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).font('Helvetica').text(`Agreement Number: ${agreementNumber}`, { align: 'center' });
+      doc.moveDown(2);
+      
+      // Agreement Details Section
+      doc.fontSize(14).font('Helvetica-Bold').text('AGREEMENT DETAILS');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Start Date: ${agreementDetails.startDate}`);
+      doc.text(`End Date: ${agreementDetails.endDate}`);
+      doc.text(`Duration: ${duration.years} year(s), ${duration.months} month(s), ${duration.days} day(s)`);
+      doc.text(`Total Days: ${duration.totalDays}`);
+      doc.moveDown();
+      
+      // Landlord Information
+      doc.fontSize(14).font('Helvetica-Bold').text('LANDLORD INFORMATION');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Name: ${landlord.name}`);
+      if (landlord.contact) {
+        doc.text(`Phone: ${landlord.contact.phone || 'N/A'}`);
+        doc.text(`Email: ${landlord.contact.email || 'N/A'}`);
+        if (landlord.contact.alternatePhone) {
+          doc.text(`Alternate Phone: ${landlord.contact.alternatePhone}`);
+        }
+      }
+      if (landlord.address) {
+        doc.text(`Address: ${formatAddress(landlord.address)}`);
+      }
+      if (landlord.taxID) {
+        doc.text(`Tax ID: ${landlord.taxID}`);
+      }
+      if (landlord.bankAccountNumber) {
+        doc.text(`Bank Account: ${landlord.bankAccountNumber}`);
+        doc.text(`Bank Name: ${landlord.bankName || 'N/A'}`);
+        doc.text(`Bank IFSC: ${landlord.bankIFSC || 'N/A'}`);
+      }
+      doc.moveDown();
+      
+      // Tenant Information
+      doc.fontSize(14).font('Helvetica-Bold').text('TENANT INFORMATION');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Name: ${tenant.name}`);
+      if (tenant.contact) {
+        doc.text(`Phone: ${tenant.contact.phone || 'N/A'}`);
+        doc.text(`Email: ${tenant.contact.email || 'N/A'}`);
+        if (tenant.contact.alternatePhone) {
+          doc.text(`Alternate Phone: ${tenant.contact.alternatePhone}`);
+        }
+      }
+      if (tenant.occupation) {
+        doc.text(`Occupation: ${tenant.occupation}`);
+      }
+      if (tenant.employer) {
+        doc.text(`Employer: ${tenant.employer}`);
+      }
+      if (tenant.idProofType) {
+        doc.text(`ID Proof Type: ${tenant.idProofType}`);
+        doc.text(`ID Proof Number: ${tenant.idProofNumber || 'N/A'}`);
+      }
+      doc.moveDown();
+      
+      // Family Members
+      if (familyMembers && familyMembers.length > 0) {
+        doc.fontSize(14).font('Helvetica-Bold').text('FAMILY MEMBERS');
+        doc.moveDown(0.5);
+        doc.fontSize(10).font('Helvetica');
+        familyMembers.forEach((member, index) => {
+          doc.text(`${index + 1}. ${member.name} (${member.relationship}, Age: ${member.age || 'N/A'})`);
+          if (member.idProofType) {
+            doc.text(`   ID: ${member.idProofType} - ${member.idProofNumber || 'N/A'}`);
+          }
+        });
+        doc.moveDown();
+      }
+      
+      // Property Information
+      doc.fontSize(14).font('Helvetica-Bold').text('PROPERTY DETAILS');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
+      if (property.address) {
+        doc.text(`Address: ${formatAddress(property.address)}`);
+      }
+      doc.text(`Property Type: ${property.propertyType || 'N/A'}`);
+      if (property.carpetArea) {
+        doc.text(`Carpet Area: ${property.carpetArea} sq ft`);
+      }
+      if (property.builtUpArea) {
+        doc.text(`Built-up Area: ${property.builtUpArea} sq ft`);
+      }
+      if (property.furnishingStatus) {
+        doc.text(`Furnishing Status: ${property.furnishingStatus}`);
+      }
+      if (property.numberOfBedrooms) {
+        doc.text(`Bedrooms: ${property.numberOfBedrooms}`);
+      }
+      if (property.numberOfBathrooms) {
+        doc.text(`Bathrooms: ${property.numberOfBathrooms}`);
+      }
+      if (property.floorNumber) {
+        doc.text(`Floor Number: ${property.floorNumber}`);
+      }
+      if (property.parkingSpaces) {
+        doc.text(`Parking Spaces: ${property.parkingSpaces}`);
+      }
+      if (property.amenities) {
+        doc.text(`Amenities: ${property.amenities}`);
+      }
+      doc.moveDown();
+      
+      // Financial Details
+      doc.fontSize(14).font('Helvetica-Bold').text('FINANCIAL DETAILS');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Monthly Rent: ${agreementDetails.rentAmount || 0}`);
+      doc.text(`Security Deposit: ${agreementDetails.securityDeposit || 0}`);
+      if (agreementDetails.maintenanceCharges) {
+        doc.text(`Maintenance Charges: ${agreementDetails.maintenanceCharges}`);
+      }
+      doc.text(`Total Monthly Cost: ${costs.monthlyTotal}`);
+      doc.text(`Total Yearly Cost: ${costs.yearlyTotal}`);
+      if (agreementDetails.paymentDueDay) {
+        doc.text(`Payment Due Day: ${agreementDetails.paymentDueDay} of each month`);
+      }
+      if (agreementDetails.paymentMode) {
+        doc.text(`Payment Mode: ${agreementDetails.paymentMode}`);
+      }
+      doc.moveDown();
+      
+      // Additional Services
+      if (additionalServices && additionalServices.length > 0) {
+        doc.fontSize(14).font('Helvetica-Bold').text('ADDITIONAL SERVICES');
+        doc.moveDown(0.5);
+        doc.fontSize(10).font('Helvetica');
+        additionalServices.forEach((service, index) => {
+          doc.text(`${index + 1}. ${service.serviceName || 'Service'}: ${service.cost || 0} (${service.billingFrequency || 'Monthly'})`);
+          if (service.description) {
+            doc.text(`   Description: ${service.description}`);
+          }
+        });
+        doc.moveDown();
+      }
+      
+      // Cost Breakdown
+      if (costs.breakdown && costs.breakdown.length > 0) {
+        doc.fontSize(14).font('Helvetica-Bold').text('COST BREAKDOWN');
+        doc.moveDown(0.5);
+        doc.fontSize(10).font('Helvetica');
+        costs.breakdown.forEach((item) => {
+          doc.text(`${item.item}: ${item.amount} (${item.frequency})`);
+        });
+        doc.moveDown();
+      }
+      
+      // Agreement Terms
+      doc.fontSize(14).font('Helvetica-Bold').text('TERMS AND CONDITIONS');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
+      if (agreementDetails.lockInPeriod) {
+        doc.text(`Lock-in Period: ${agreementDetails.lockInPeriod} months`);
+      }
+      if (agreementDetails.noticePeriod) {
+        doc.text(`Notice Period: ${agreementDetails.noticePeriod} days`);
+      }
+      if (agreementDetails.rentEscalation) {
+        doc.text(`Rent Escalation: ${agreementDetails.rentEscalation}% every ${agreementDetails.escalationFrequency || 12} months`);
+      }
+      if (agreementDetails.terms) {
+        doc.moveDown(0.5);
+        doc.text(agreementDetails.terms, { align: 'justify' });
+      }
+      if (agreementDetails.specialConditions) {
+        doc.moveDown();
+        doc.fontSize(12).font('Helvetica-Bold').text('Special Conditions:');
+        doc.fontSize(10).font('Helvetica').text(agreementDetails.specialConditions, { align: 'justify' });
+      }
+      doc.moveDown(2);
+      
+      // Signatures
+      doc.fontSize(14).font('Helvetica-Bold').text('SIGNATURES');
+      doc.moveDown(2);
+      
+      const leftMargin = 50;
+      const rightMargin = doc.page.width - 200;
+      
+      doc.fontSize(10).font('Helvetica');
+      doc.text('_____________________', leftMargin, doc.y);
+      doc.text('_____________________', rightMargin, doc.y - 12);
+      doc.moveDown(0.5);
+      doc.text('Landlord Signature', leftMargin, doc.y);
+      doc.text('Tenant Signature', rightMargin, doc.y - 12);
+      doc.moveDown();
+      doc.text(`Name: ${landlord.name}`, leftMargin, doc.y);
+      doc.text(`Name: ${tenant.name}`, rightMargin, doc.y - 12);
+      doc.moveDown();
+      doc.text(`Date: _______________`, leftMargin, doc.y);
+      doc.text(`Date: _______________`, rightMargin, doc.y - 12);
+      
+      // Finalize the PDF
+      doc.end();
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
 }

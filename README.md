@@ -9,6 +9,7 @@ This is a rental agreement generation service built with SAP Cloud Application P
 ## Features
 
 - **Generate Rental Agreements**: Create comprehensive rental agreements with landlord, tenant, and property details
+- **PDF Generation**: Automatically generates professional PDF documents for rental agreements
 - **Validate Agreement Data**: Validate rental agreement data before generation
 - **Calculate Duration**: Calculate the duration between two dates in years, months, and days
 - **Calculate Costs**: Calculate total monthly and yearly costs including rent, maintenance, and additional services
@@ -51,7 +52,8 @@ See [TEST_DOCUMENTATION.md](./TEST_DOCUMENTATION.md) for comprehensive API docum
 
 1. **Generate Agreement** (POST `/generateAgreement`)
    - Creates a rental agreement with full validation
-   - Returns agreement summary with costs and duration
+   - Generates professional PDF document
+   - Returns agreement summary with costs, duration, and PDF in base64 format
 
 2. **Validate Agreement Data** (POST `/validateAgreementData`)
    - Validates rental agreement data

@@ -88,6 +88,7 @@ service RentalService @(path: '/odata/v4/rental') {
     message: String(500);
     errors: array of String;
     validationWarnings: array of String;
+    pdfDocument: LargeBinary;
     agreementSummary: {
       landlordName: String(200);
       tenantName: String(200);
