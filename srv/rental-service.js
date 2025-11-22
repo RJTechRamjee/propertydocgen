@@ -4,6 +4,9 @@ const PDFDocument = require('pdfkit');
 // Email validation regex supporting international domains, subdomains, plus signs, dots, and other valid patterns
 const EMAIL_VALIDATION_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
+// PDF layout constants
+const SIGNATURE_Y_OFFSET = 12;
+
 module.exports = cds.service.impl(async function() {
   
   // Handler for generateAgreement action
@@ -556,16 +559,16 @@ async function generatePDF(agreementNumber, landlord, tenant, property, agreemen
       
       doc.fontSize(10).font('Helvetica');
       doc.text('_____________________', leftMargin, doc.y);
-      doc.text('_____________________', rightMargin, doc.y - 12);
+      doc.text('_____________________', rightMargin, doc.y - SIGNATURE_Y_OFFSET);
       doc.moveDown(0.5);
       doc.text('Landlord Signature', leftMargin, doc.y);
-      doc.text('Tenant Signature', rightMargin, doc.y - 12);
+      doc.text('Tenant Signature', rightMargin, doc.y - SIGNATURE_Y_OFFSET);
       doc.moveDown();
       doc.text(`Name: ${landlord.name}`, leftMargin, doc.y);
-      doc.text(`Name: ${tenant.name}`, rightMargin, doc.y - 12);
+      doc.text(`Name: ${tenant.name}`, rightMargin, doc.y - SIGNATURE_Y_OFFSET);
       doc.moveDown();
       doc.text(`Date: _______________`, leftMargin, doc.y);
-      doc.text(`Date: _______________`, rightMargin, doc.y - 12);
+      doc.text(`Date: _______________`, rightMargin, doc.y - SIGNATURE_Y_OFFSET);
       
       // Finalize the PDF
       doc.end();
