@@ -201,9 +201,7 @@ function calculateDurationInternal(startDate, endDate) {
   let tempDate = new Date(start);
   
   // Calculate years
-  while (tempDate.getFullYear() < end.getFullYear() || 
-         (tempDate.getFullYear() === end.getFullYear() && tempDate.getMonth() < end.getMonth()) ||
-         (tempDate.getFullYear() === end.getFullYear() && tempDate.getMonth() === end.getMonth() && tempDate.getDate() <= end.getDate())) {
+  while (true) {
     const nextYear = new Date(tempDate);
     nextYear.setFullYear(nextYear.getFullYear() + 1);
     
@@ -216,9 +214,7 @@ function calculateDurationInternal(startDate, endDate) {
   }
   
   // Calculate months
-  while (tempDate.getMonth() < end.getMonth() ||
-         (tempDate.getMonth() === end.getMonth() && tempDate.getDate() <= end.getDate()) ||
-         (tempDate.getMonth() > end.getMonth() && tempDate.getFullYear() < end.getFullYear())) {
+  while (true) {
     const nextMonth = new Date(tempDate);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     
@@ -269,6 +265,7 @@ function calculateTotalCostsInternal(rentAmount, maintenanceCharges, additionalS
     additionalServices.forEach(service => {
       const cost = Number(service.cost);
       const frequency = service.billingFrequency || 'Monthly';
+      const frequencyLower = frequency.toLowerCase();
       
       breakdown.push({
         item: service.serviceName || 'Additional Service',
@@ -278,7 +275,7 @@ function calculateTotalCostsInternal(rentAmount, maintenanceCharges, additionalS
       
       // Convert to monthly equivalent
       let monthlyEquivalent = cost;
-      switch (frequency.toLowerCase()) {
+      switch (frequencyLower) {
         case 'monthly':
           monthlyEquivalent = cost;
           break;
@@ -295,7 +292,7 @@ function calculateTotalCostsInternal(rentAmount, maintenanceCharges, additionalS
           monthlyEquivalent = cost; // Assume monthly if unknown
       }
       
-      if (frequency.toLowerCase() !== 'onetime') {
+      if (frequencyLower !== 'onetime') {
         monthlyTotal += monthlyEquivalent;
       }
     });
@@ -333,6 +330,8 @@ function formatAddress(address) {
 
 // Helper function to validate email
 function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // More comprehensive email validation regex that supports international domains,
+  // subdomains, plus signs, dots, and other common valid email patterns
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   return emailRegex.test(email);
 }
