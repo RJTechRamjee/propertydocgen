@@ -1,0 +1,24 @@
+### Test 1: Generate a PDF Document (SUCCESS Case)
+# Base Path: /DocGenService (from the @path annotation)
+# Action Name: generateDocument
+# Full URL: http://localhost:4004/DocGenService/generateDocument
+# @name GeneratePDF
+POST http://localhost:4004/DocGenService/generateDocument
+Content-Type: application/json
+
+{
+    "docType": "PDF",
+    "content": "Content for the PDF."
+}
+
+
+
+### Test 2: Use Unsupported Document Type (ERROR Case)
+# @name GenerateError
+POST http://localhost:4004/DocGenService/generateDocument
+Content-Type: application/json
+
+{
+    "docType": "HTML",
+    "content": "This type should trigger the 400 error in the handler."
+}
