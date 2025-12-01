@@ -3,6 +3,26 @@ const PDFDocument = require('pdfkit');
 
 class DocumentGenerationService extends cds.ApplicationService {
     
+    /**
+     * Extracts the document ID from request params
+     * @param {object} req - The CAP request object
+     * @returns {string|null} The document ID or null
+     */
+    _getDocumentId(req) {
+        return req.params[0]?.ID || req.params[0];
+    }
+    
+    /**
+     * Sanitizes a filename for use in Content-Disposition header
+     * @param {string} filename - The original filename
+     * @returns {string} Sanitized filename safe for HTTP headers
+     */
+    _sanitizeFilename(filename) {
+        if (!filename) return 'document.pdf';
+        // Remove any characters that could be used for header injection
+        return filename.replace(/["\r\n\0]/g, '').substring(0, 255);
+    }
+    
     async init() {
         // Register the handler for the 'generateDocument' Action
         this.on('generateDocument', this.onGenerateDocument);
@@ -22,7 +42,7 @@ class DocumentGenerationService extends cds.ApplicationService {
         // Check if this is a request for the pdfFile stream
         if (req.headers && req.headers.accept === 'application/pdf') {
             const { Documents } = cds.entities;
-            const ID = req.params[0]?.ID || req.params[0];
+            const ID = this._getDocumentId(req);
             
             if (ID) {
                 const doc = await cds.tx(req).run(
@@ -31,9 +51,10 @@ class DocumentGenerationService extends cds.ApplicationService {
                 
                 if (doc && doc.pdfFile) {
                     const pdfBuffer = Buffer.from(doc.pdfFile, 'base64');
+                    const safeFilename = this._sanitizeFilename(doc.filename);
                     req._.res.set({
                         'Content-Type': 'application/pdf',
-                        'Content-Disposition': `attachment; filename="${doc.filename || 'document.pdf'}"`,
+                        'Content-Disposition': `attachment; filename="${safeFilename}"`,
                         'Content-Length': pdfBuffer.length
                     });
                     req._.res.send(pdfBuffer);
@@ -56,7 +77,16 @@ class DocumentGenerationService extends cds.ApplicationService {
         const { Documents } = cds.entities;
         
         // Get the ID of the bound entity from request params
-        const documentId = req.params[0]?.ID || req.params[0];
+        const documentId = this._getDocumentId(req);
+        
+        // Verify the document exists before proceeding
+        const existingDoc = await cds.tx(req).run(
+            SELECT.one.from(Documents).columns('ID').where({ ID: documentId })
+        );
+        
+        if (!existingDoc) {
+            return req.error(404, `Document with ID ${documentId} not found`);
+        }
 
         if (docType === 'PDF') {
             const filename = `generated_doc_${Date.now()}.pdf`;
