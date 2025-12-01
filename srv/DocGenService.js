@@ -15,8 +15,9 @@ class DocumentGenerationService extends cds.ApplicationService {
     /**
      * Handler method for the generateDocument action.
      * Generates a PDF if docType is 'PDF'.
+     * Updates existing document file and returns base64-encoded PDF for download.
      * @param {object} req - The CAP request object.
-     * @returns {string} A confirmation message.
+     * @returns {string} JSON string with message and base64 PDF data.
      */
     async onGenerateDocument(req) {
         
@@ -24,40 +25,54 @@ class DocumentGenerationService extends cds.ApplicationService {
         
         if (docType === 'PDF') {
             
-            // 1. Define the filename and path for the generated PDF
-            const filename = `generated_doc_${Date.now()}.pdf`;
-            const filePath = path.join(process.cwd(), filename); // Saves in the project root
+            // 1. Define a fixed filename to update existing document (not insert new)
+            const filename = 'generated_document.pdf';
+            const filePath = path.join(process.cwd(), filename);
 
-            // 2. Create a new PDF document instance
-            const doc = new PDFDocument();
-            
-            // 3. Pipe the document output to a writable stream (to save the file)
-            // NOTE: In a real-world scenario, you might skip saving to disk and 
-            // instead upload the buffer to a document management service (e.g., SAP DMS, S/4HANA, Azure Blob).
-            doc.pipe(fs.createWriteStream(filePath));
-            
-            // 4. Add the provided content to the PDF
-            doc.fontSize(16)
-               .text('--- Generated Document ---', { align: 'center' })
-               .moveDown(); // Add a line break
+            // 2. Generate PDF and collect chunks for base64 encoding
+            return new Promise((resolve, reject) => {
+                const doc = new PDFDocument();
+                const chunks = [];
+                
+                // Collect PDF data into buffer
+                doc.on('data', (chunk) => chunks.push(chunk));
+                doc.on('end', () => {
+                    const pdfBuffer = Buffer.concat(chunks);
+                    const base64Pdf = pdfBuffer.toString('base64');
+                    
+                    // Also save to disk (updates existing file)
+                    fs.writeFileSync(filePath, pdfBuffer);
+                    console.log(`Successfully generated and updated PDF at: ${filePath}`);
+                    
+                    // Return JSON with message and downloadable PDF data
+                    const result = {
+                        message: `PDF document generated successfully and saved as '${filename}' with content length: ${content.length}.`,
+                        filename: filename,
+                        mimeType: 'application/pdf',
+                        pdfBase64: base64Pdf
+                    };
+                    resolve(JSON.stringify(result));
+                });
+                doc.on('error', (err) => reject(err));
 
-            doc.fontSize(12)
-               .text(`Document Type Requested: ${docType}`, { indent: 20 })
-               .text('----------------------------------------------------')
-               .moveDown();
+                // 3. Add the provided content to the PDF
+                doc.fontSize(16)
+                   .text('--- Generated Document ---', { align: 'center' })
+                   .moveDown();
 
-            doc.text('Input Content:', { underline: true })
-               .moveDown(0.5);
+                doc.fontSize(12)
+                   .text(`Document Type Requested: ${docType}`, { indent: 20 })
+                   .text('----------------------------------------------------')
+                   .moveDown();
 
-            // Add the main content provided by the user
-            doc.text(content); 
+                doc.text('Input Content:', { underline: true })
+                   .moveDown(0.5);
 
-            // 5. Finalize the PDF and close the stream
-            doc.end(); 
+                doc.text(content); 
 
-            console.log(`Successfully generated and saved PDF to: ${filePath}`);
-            
-            return `PDF document generated successfully and saved as '${filename}' with content length: ${content.length}.`;
+                // 4. Finalize the PDF
+                doc.end(); 
+            });
             
         } else if (docType === 'DOCX') {
             // Keep the DOCX path for other requirements
