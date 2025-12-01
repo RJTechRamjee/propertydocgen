@@ -1,6 +1,6 @@
 const cds = require('@sap/cds');
 const PDFDocument = require('pdfkit'); //https://stackabuse.com/generating-pdf-files-in-node-js-with-pdfkit/
-const fs = require('fs'); // To save the file (optional, for demonstration)
+const fs = require('fs').promises; // Use promises for async file operations
 const path = require('path');
 
 class DocumentGenerationService extends cds.ApplicationService {
@@ -36,13 +36,17 @@ class DocumentGenerationService extends cds.ApplicationService {
                 
                 // Collect PDF data into buffer
                 doc.on('data', (chunk) => chunks.push(chunk));
-                doc.on('end', () => {
+                doc.on('end', async () => {
                     const pdfBuffer = Buffer.concat(chunks);
                     const base64Pdf = pdfBuffer.toString('base64');
                     
-                    // Also save to disk (updates existing file)
-                    fs.writeFileSync(filePath, pdfBuffer);
-                    console.log(`Successfully generated and updated PDF at: ${filePath}`);
+                    // Also save to disk (updates existing file) - using async write
+                    try {
+                        await fs.writeFile(filePath, pdfBuffer);
+                        console.log(`Successfully generated and updated PDF at: ${filePath}`);
+                    } catch (writeErr) {
+                        console.error(`Failed to save PDF to disk: ${writeErr.message}`);
+                    }
                     
                     // Return JSON with message and downloadable PDF data
                     const result = {
