@@ -1,16 +1,22 @@
 using DocumentGenerationService as service from '../../srv/DocGenService';
+
+// Annotate the pdfFile as a stream/media property
+annotate service.Documents with {
+    pdfFile @Core.MediaType: mediaType  @Core.ContentDisposition.Filename: filename  @Core.ContentDisposition.Type: 'attachment';
+};
+
 annotate service.Documents with @(
     UI.FieldGroup #GeneratedGroup : {
         $Type : 'UI.FieldGroupType',
         Data : [
             {
                 $Type : 'UI.DataField',
-                Label : 'title',
+                Label : 'Title',
                 Value : title,
             },
             {
                 $Type : 'UI.DataField',
-                Label : 'filename',
+                Label : 'Filename',
                 Value : filename,
             },
         ],
@@ -31,14 +37,18 @@ annotate service.Documents with @(
         },
         {
             $Type : 'UI.DataField',
-            Label : 'title',
+            Label : 'Title',
             Value : title,
         },
         {
             $Type : 'UI.DataField',
-            Label : 'filename',
+            Label : 'Filename',
             Value : filename,
+        },
+        {
+            $Type : 'UI.DataField',
+            Label : 'Download',
+            Value : pdfFile,
         },
     ],
 );
-
