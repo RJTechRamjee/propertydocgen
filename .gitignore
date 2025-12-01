@@ -5,3 +5,6 @@ gen/
 *.log
 .DS_Store
 package-lock.json
+
+# added by cds
+.cdsrc-private.json
