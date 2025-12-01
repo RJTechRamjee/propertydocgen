@@ -1,6 +1,5 @@
 const cds = require('@sap/cds');
 const PDFDocument = require('pdfkit');
-const path = require('path');
 
 class DocumentGenerationService extends cds.ApplicationService {
     
@@ -8,7 +7,41 @@ class DocumentGenerationService extends cds.ApplicationService {
         // Register the handler for the 'generateDocument' Action
         this.on('generateDocument', this.onGenerateDocument);
         
+        // Register handler for PDF download
+        this.on('READ', 'Documents', this.onReadDocuments);
+        
         return super.init();
+    }
+    
+    /**
+     * Handler for reading Documents - serves PDF content for download
+     * @param {object} req - The CAP request object.
+     * @param {function} next - Next handler in the chain.
+     */
+    async onReadDocuments(req, next) {
+        // Check if this is a request for the pdfFile stream
+        if (req.headers && req.headers.accept === 'application/pdf') {
+            const { Documents } = cds.entities;
+            const ID = req.params[0]?.ID || req.params[0];
+            
+            if (ID) {
+                const doc = await cds.tx(req).run(
+                    SELECT.one.from(Documents).where({ ID: ID })
+                );
+                
+                if (doc && doc.pdfFile) {
+                    const pdfBuffer = Buffer.from(doc.pdfFile, 'base64');
+                    req._.res.set({
+                        'Content-Type': 'application/pdf',
+                        'Content-Disposition': `attachment; filename="${doc.filename || 'document.pdf'}"`,
+                        'Content-Length': pdfBuffer.length
+                    });
+                    req._.res.send(pdfBuffer);
+                    return;
+                }
+            }
+        }
+        return next();
     }
     
     /**
@@ -21,6 +54,9 @@ class DocumentGenerationService extends cds.ApplicationService {
         
         const { docType, content, preview } = req.data;
         const { Documents } = cds.entities;
+        
+        // Get the ID of the bound entity from request params
+        const documentId = req.params[0]?.ID || req.params[0];
 
         if (docType === 'PDF') {
             const filename = `generated_doc_${Date.now()}.pdf`;
@@ -58,13 +94,12 @@ class DocumentGenerationService extends cds.ApplicationService {
                 doc.end();
             });
 
-            // Store the PDF in the Documents entity
-            const inserted = await cds.tx(req).run(
-                INSERT.into(Documents).entries({
-                    title: 'Generated PDF',
+            // Update the existing document instead of inserting a new one
+            await cds.tx(req).run(
+                UPDATE(Documents).set({
                     pdfFile: pdfBuffer.toString('base64'),
                     filename: filename
-                })
+                }).where({ ID: documentId })
             );
 
             console.log(`Successfully generated PDF: ${filename}${preview ? ' (Preview Mode)' : ''}`);
