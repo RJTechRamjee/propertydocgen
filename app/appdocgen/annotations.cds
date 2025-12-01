@@ -16,8 +16,8 @@ annotate service.Documents with @(
             },
             {
                 $Type : 'UI.DataField',
-                Label : 'Filename',
-                Value : filename,
+                Label : 'Download PDF',
+                Value : pdfFile,
             },
         ],
     },
@@ -42,12 +42,7 @@ annotate service.Documents with @(
         },
         {
             $Type : 'UI.DataField',
-            Label : 'Filename',
-            Value : filename,
-        },
-        {
-            $Type : 'UI.DataField',
-            Label : 'Download',
+            Label : 'Download PDF',
             Value : pdfFile,
         },
     ],
