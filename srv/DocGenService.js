@@ -27,42 +27,45 @@ class DocumentGenerationService extends cds.ApplicationService {
         // Register the handler for the 'generateDocument' Action
         this.on('generateDocument', this.onGenerateDocument);
         
-        // Register handler for PDF download
-        this.on('READ', 'Documents', this.onReadDocuments);
+        // Register handler for PDF download action
+        this.on('downloadPdf', this.onDownloadPdf);
         
         return super.init();
     }
     
     /**
-     * Handler for reading Documents - serves PDF content for download
+     * Handler for downloadPdf action - serves PDF content for download
      * @param {object} req - The CAP request object.
-     * @param {function} next - Next handler in the chain.
      */
-    async onReadDocuments(req, next) {
-        // Check if this is a request for the pdfFile stream
-        if (req.headers && req.headers.accept === 'application/pdf') {
-            const { Documents } = cds.entities;
-            const ID = this._getDocumentId(req);
-            
-            if (ID) {
-                const doc = await cds.tx(req).run(
-                    SELECT.one.from(Documents).where({ ID: ID })
-                );
-                
-                if (doc && doc.pdfFile) {
-                    const pdfBuffer = Buffer.from(doc.pdfFile, 'base64');
-                    const safeFilename = this._sanitizeFilename(doc.filename);
-                    req._.res.set({
-                        'Content-Type': 'application/pdf',
-                        'Content-Disposition': `attachment; filename="${safeFilename}"`,
-                        'Content-Length': pdfBuffer.length
-                    });
-                    req._.res.send(pdfBuffer);
-                    return;
-                }
-            }
+    async onDownloadPdf(req) {
+        const { Documents } = cds.entities;
+        const ID = this._getDocumentId(req);
+        
+        if (!ID) {
+            return req.error(400, 'Document ID is required');
         }
-        return next();
+        
+        const doc = await cds.tx(req).run(
+            SELECT.one.from(Documents).where({ ID: ID })
+        );
+        
+        if (!doc) {
+            return req.error(404, `Document with ID ${ID} not found`);
+        }
+        
+        if (!doc.pdfFile) {
+            return req.error(422, 'No PDF file generated for this document. Please generate a document first.');
+        }
+        
+        const pdfBuffer = Buffer.from(doc.pdfFile, 'base64');
+        const safeFilename = this._sanitizeFilename(doc.filename);
+        
+        req._.res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${safeFilename}"`,
+            'Content-Length': pdfBuffer.length
+        });
+        req._.res.send(pdfBuffer);
     }
     
     /**

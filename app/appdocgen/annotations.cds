@@ -35,6 +35,11 @@ annotate service.Documents with @(
             Action : 'DocumentGenerationService.generateDocument',
         },
         {
+            $Type : 'UI.DataFieldForAction',
+            Label : 'Download PDF',
+            Action : 'DocumentGenerationService.downloadPdf',
+        },
+        {
             $Type : 'UI.DataField',
             Label : 'title',
             Value : title,

@@ -27,11 +27,10 @@ Content-Type: application/json
 ### Test 3: get metadata
 GET http://localhost:4004/DocumentGenerationService/$metadata
 
-### Test 4: Download PDF from a document
-# Use Accept: application/pdf header to get the PDF file for download
-# @name DownloadPDF
-GET http://localhost:4004/DocumentGenerationService/Documents(ID=123e4567-e89b-12d3-a456-426614174000)
-Accept: application/pdf
+### Test 4: Download PDF using the downloadPdf action
+# This is the preferred method for downloading PDFs from the Fiori app
+# @name DownloadPDFAction
+POST http://localhost:4004/DocumentGenerationService/Documents(ID=123e4567-e89b-12d3-a456-426614174000)/DocumentGenerationService.downloadPdf
 
 ### Test 5: Get all documents
 GET http://localhost:4004/DocumentGenerationService/Documents

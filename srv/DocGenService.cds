@@ -11,6 +11,8 @@ service DocumentGenerationService @(path: '/DocumentGenerationService') {
         actions {
             // Define the action to generate a document
             action generateDocument(docType: String, content: String @mandatory, preview: Boolean @mandatory ) returns DocumentResult;
+            // Define the action to download the PDF (returns binary stream)
+            action downloadPdf();
         };
 
     // Define the return type for the action
