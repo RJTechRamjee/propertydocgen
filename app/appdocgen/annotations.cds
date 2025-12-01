@@ -10,11 +10,6 @@ annotate service.Documents with @(
             },
             {
                 $Type : 'UI.DataField',
-                Label : 'pdfFile',
-                Value : pdfFile,
-            },
-            {
-                $Type : 'UI.DataField',
                 Label : 'filename',
                 Value : filename,
             },
@@ -29,25 +24,15 @@ annotate service.Documents with @(
         },
     ],
     UI.LineItem : [
-                {
+        {
             $Type : 'UI.DataFieldForAction',
             Label : 'Generate Document',
             Action : 'DocumentGenerationService.generateDocument',
         },
         {
-            $Type : 'UI.DataFieldForAction',
-            Label : 'Download PDF',
-            Action : 'DocumentGenerationService.downloadPdf',
-        },
-        {
             $Type : 'UI.DataField',
             Label : 'title',
             Value : title,
-        },
-        {
-            $Type : 'UI.DataField',
-            Label : 'pdfFile',
-            Value : pdfFile,
         },
         {
             $Type : 'UI.DataField',

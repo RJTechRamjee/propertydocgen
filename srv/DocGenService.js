@@ -12,60 +12,11 @@ class DocumentGenerationService extends cds.ApplicationService {
         return req.params[0]?.ID || req.params[0];
     }
     
-    /**
-     * Sanitizes a filename for use in Content-Disposition header
-     * @param {string} filename - The original filename
-     * @returns {string} Sanitized filename safe for HTTP headers
-     */
-    _sanitizeFilename(filename) {
-        if (!filename) return 'document.pdf';
-        // Remove any characters that could be used for header injection
-        return filename.replace(/["\r\n\0]/g, '').substring(0, 255);
-    }
-    
     async init() {
         // Register the handler for the 'generateDocument' Action
         this.on('generateDocument', this.onGenerateDocument);
         
-        // Register handler for PDF download action
-        this.on('downloadPdf', this.onDownloadPdf);
-        
         return super.init();
-    }
-    
-    /**
-     * Handler for downloadPdf action - serves PDF content for download
-     * @param {object} req - The CAP request object.
-     */
-    async onDownloadPdf(req) {
-        const { Documents } = cds.entities;
-        const ID = this._getDocumentId(req);
-        
-        if (!ID) {
-            return req.error(400, 'Document ID is required');
-        }
-        
-        const doc = await cds.tx(req).run(
-            SELECT.one.from(Documents).where({ ID: ID })
-        );
-        
-        if (!doc) {
-            return req.error(404, `Document with ID ${ID} not found`);
-        }
-        
-        if (!doc.pdfFile) {
-            return req.error(422, 'No PDF file generated for this document. Please generate a document first.');
-        }
-        
-        const pdfBuffer = Buffer.from(doc.pdfFile, 'base64');
-        const safeFilename = this._sanitizeFilename(doc.filename);
-        
-        req._.res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${safeFilename}"`,
-            'Content-Length': pdfBuffer.length
-        });
-        req._.res.send(pdfBuffer);
     }
     
     /**
@@ -127,10 +78,11 @@ class DocumentGenerationService extends cds.ApplicationService {
                 doc.end();
             });
 
-            // Update the existing document instead of inserting a new one
+            // Update the existing document with binary PDF content and mediaType
             await cds.tx(req).run(
                 UPDATE(Documents).set({
-                    pdfFile: pdfBuffer.toString('base64'),
+                    pdfFile: pdfBuffer,
+                    mediaType: 'application/pdf',
                     filename: filename
                 }).where({ ID: documentId })
             );
