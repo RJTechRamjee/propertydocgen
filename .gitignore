@@ -8,3 +8,6 @@ package-lock.json
 
 # added by cds
 .cdsrc-private.json
+
+# Generated PDF files
+generated_doc_*.pdf

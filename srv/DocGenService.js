@@ -1,8 +1,16 @@
 const cds = require('@sap/cds');
 const PDFDocument = require('pdfkit');
-const path = require('path');
 
 class DocumentGenerationService extends cds.ApplicationService {
+    
+    /**
+     * Extracts the document ID from request params
+     * @param {object} req - The CAP request object
+     * @returns {string|null} The document ID or null
+     */
+    _getDocumentId(req) {
+        return req.params[0]?.ID || req.params[0];
+    }
     
     async init() {
         // Register the handler for the 'generateDocument' Action
@@ -21,6 +29,18 @@ class DocumentGenerationService extends cds.ApplicationService {
         
         const { docType, content, preview } = req.data;
         const { Documents } = cds.entities;
+        
+        // Get the ID of the bound entity from request params
+        const documentId = this._getDocumentId(req);
+        
+        // Verify the document exists before proceeding
+        const existingDoc = await cds.tx(req).run(
+            SELECT.one.from(Documents).columns('ID').where({ ID: documentId })
+        );
+        
+        if (!existingDoc) {
+            return req.error(404, `Document with ID ${documentId} not found`);
+        }
 
         if (docType === 'PDF') {
             const filename = `generated_doc_${Date.now()}.pdf`;
@@ -58,13 +78,13 @@ class DocumentGenerationService extends cds.ApplicationService {
                 doc.end();
             });
 
-            // Store the PDF in the Documents entity
-            const inserted = await cds.tx(req).run(
-                INSERT.into(Documents).entries({
-                    title: 'Generated PDF',
-                    pdfFile: pdfBuffer.toString('base64'),
+            // Update the existing document with binary PDF content and mediaType
+            await cds.tx(req).run(
+                UPDATE(Documents).set({
+                    pdfFile: pdfBuffer,
+                    mediaType: 'application/pdf',
                     filename: filename
-                })
+                }).where({ ID: documentId })
             );
 
             console.log(`Successfully generated PDF: ${filename}${preview ? ' (Preview Mode)' : ''}`);

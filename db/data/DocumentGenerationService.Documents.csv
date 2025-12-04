@@ -1,4 +1,4 @@
-ID,title,pdfFile,filename
-123e4567-e89b-12d3-a456-426614174000,Sample Document 1,,sample1.pdf
-987fbc97-4bed-5078-9f07-9141ba07c9f3,Sample Document 2,,sample2.pdf
-9c858901-8a57-4791-81fe-4c455b099bc9,Sample Document 3,,sample3.pdf
+ID,title,pdfFile,mediaType,filename
+123e4567-e89b-12d3-a456-426614174000,Sample Document 1,,application/pdf,sample1.pdf
+987fbc97-4bed-5078-9f07-9141ba07c9f3,Sample Document 2,,application/pdf,sample2.pdf
+9c858901-8a57-4791-81fe-4c455b099bc9,Sample Document 3,,application/pdf,sample3.pdf
