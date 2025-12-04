@@ -34,3 +34,9 @@ GET http://localhost:4004/DocumentGenerationService/Documents(ID=123e4567-e89b-1
 
 ### Test 5: Get all documents
 GET http://localhost:4004/DocumentGenerationService/Documents
+
+### Test 6: Create a new document (for testing purposes)
+POST http://localhost:4004/DocumentGenerationService/Documents(9c858901-8a57-4791-81fe-4c455b099bc9)/DocumentGenerationService.generateDocument
+Content-Type: application/json
+
+{"docType":"PDF","content":"Hello Dear, how are you?","preview":true}
